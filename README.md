@@ -1,12 +1,14 @@
 # Bi-Rotor Tilt-Rotor UAV — Cascaded PID Control
 
+> **Attribution.** The vehicle concept, the dual-axis-tilt rigid-body model, and the geometric control-allocation formulation used in this repository are not original to this repository — they come from a published paper by other authors, included here as [`ICC25_0175_FI.pdf`](./ICC25_0175_FI.pdf) (full citation in [References](#references)). That paper derives the dynamics, proposes a **constant** allocation matrix, and controls the vehicle with a **robust backstepping** controller. This repository re-derives the same rigid-body dynamics and the same rotor moment-arm/allocation geometry from that paper, then experiments with an alternative, **linear** control design on top of it: a cascaded PID controller (with a **dynamically** rebuilt, rather than constant, allocation matrix), plus a learned neural-network allocation mixer. The main original contribution of this repository is setting up the SolidWorks -> URDF -> Gazebo/ROS simulation ("SITL") pipeline for the vehicle (`Birotor_Assembly.SLDASM`, `Birotor_Gzmodel/`), which is not part of the cited paper.
+
 ## Project overview
 
 This repository contains a single Jupyter notebook, `Bi_rotor_PID_Control.ipynb`, that simulates the flight dynamics and control of a tilt-rotor bi-rotor UAV: a two-rotor aerial vehicle in which each rotor is mounted on a two-axis gimbal (independent tilt angles `alpha`, `beta`) instead of being fixed to the airframe like a conventional quadcopter arm. Because the vehicle has only two thrust-producing rotors but needs to command 6 degrees of freedom (3 forces + 3 moments), the rotor tilt angles are used as extra control inputs, turning the actuator set into an over/fully-actuated allocation problem rather than the fixed-mixing problem of a quadcopter.
 
 The notebook addresses two things: (1) a 6-DOF rigid-body dynamic model of the vehicle driven by a cascaded PID controller (position -> velocity -> attitude -> body rate), with an analytic control-allocation step that inverts a 6x6 geometry-dependent mixing matrix to solve for the two thrust magnitudes and four tilt angles; and (2) a learned replacement for that analytic allocation step — a feed-forward neural network (`NeuralMixer`) trained on data generated from the same analytic mixer, intended to approximate the same body-frame-force/moment -> actuator-command mapping without an explicit matrix pseudo-inverse at runtime.
 
-There is no CAD, URDF/SDF, or PX4 SITL integration present in this repository (see "SolidWorks URDF and PX4 SITL" below) — the work here is confined to an offline Python/PyTorch simulation of the plant and controller.
+A SolidWorks CAD assembly and its exported URDF/Gazebo package are also present in the repository (see "SolidWorks CAD, URDF Export, and Gazebo/ROS Simulation Pipeline" below); there is no PX4 flight-stack integration.
 
 ## Vehicle model
 
@@ -202,19 +204,72 @@ The 25x weighting on angle error is explained in-notebook as compensating for an
 
 Trained weights are saved via `torch.save(model.state_dict(), ...)` to a Google Colab Drive path (`/content/drive/My Drive/neural_mixer_weights.pth`), i.e. the notebook was run in Google Colab; no weights file is present in this repository.
 
-## SolidWorks URDF and PX4 SITL
+## SolidWorks CAD, URDF Export, and Gazebo/ROS Simulation Pipeline
 
-None of this exists in the repository. There is no URDF/SDF file, no SolidWorks export, no PX4 airframe script, no launch file, and no build/run command anywhere in `Bi_rotor_PID_Control.ipynb` or elsewhere in this directory — the only file present is the notebook itself, and a targeted search of its contents turned up no text mentioning URDF, SDF, PX4, SITL, Gazebo, or MAVLink outside of incidental substring matches inside base64-encoded PNG plot data. See the TODO list below.
+**Source CAD**: `Birotor_Assembly.SLDASM`, a SolidWorks assembly (binary, ~2.2 MB) at the repository root. Per `Birotor_Gzmodel/export.log`, the assembly contains 36 components, including a `Pixhawk Pro FC` part (a physical flight-controller mockup for mass/CoG accuracy — this is a CAD part only, not a software integration) and a `BLDCMotor`.
+
+**Export**: the assembly was exported with the SolidWorks-to-URDF Exporter plugin (SW2URDF, commit `1.5.1-0-g916b5db`, build `1.5.7152.31018`), producing the ROS1 catkin package `Birotor_Gzmodel/`. This is a classic Gazebo + ROS1 (`gazebo_ros`) package, not PX4 SITL and not Ignition/GZ Sim — "Gzmodel" in the package name comes from the exporter's default naming, not from Ignition Gazebo's `gz` tooling.
+
+**URDF** (`Birotor_Gzmodel/urdf/Birotor_Gzmodel.urdf`): robot name `Birotor_Gzmodel`. Links: `base_link`, `Bottom_plate_chassis`, `Left_servo1`, `Left_servo2`, `Left_prop`, `Right_servo1`, `Right_servo2`, `Right_prop`, each with an inertial block, a visual mesh, and a matching collision mesh under `meshes/*.STL`. Joints:
+
+| Joint | Type | Parent -> Child | Limits |
+|---|---|---|---|
+| `Bottom_plate_chassis` | fixed | `base_link` -> `Bottom_plate_chassis` | — |
+| `Left_servo1_joint` | revolute | `Bottom_plate_chassis` -> `Left_servo1` | ±1.47 rad, effort 2.5, velocity 3 |
+| `Left_servo2_joint` | revolute, **mimics** `Left_servo1_joint` (multiplier 1, offset 0) | `Left_servo1` -> `Left_servo2` | ±1.47 rad, effort 2.5, velocity 3 |
+| `Left_prop_joint` | continuous | `Left_servo2` -> `Left_prop` | effort 10, velocity 500 |
+| `Right_servo1_joint` | revolute | `Bottom_plate_chassis` -> `Right_servo1` | ±1.47 rad, effort 2.5, velocity 3 |
+| `Right_servo2_joint` | revolute (no mimic tag) | `Right_servo1` -> `Right_servo2` | ±1.47 rad, effort 2.5, velocity 3 |
+| `Right_prop_joint` | continuous | `Right_servo2` -> `Right_prop` | effort 10, velocity 500 |
+
+`Birotor_Gzmodel/config/joint_names_Birotor_Gzmodel.yaml` lists the same six actuated joints as `controller_joint_names`.
+
+**Launch files**:
+- `Birotor_Gzmodel/launch/gazebo.launch` includes `$(find gazebo_ros)/launch/empty_world.launch`, publishes a static `base_link -> base_footprint` transform, and spawns the robot with:
+  ```
+  <node name="spawn_model" pkg="gazebo_ros" type="spawn_model"
+        args="-file $(find Birotor_Gzmodel)/urdf/Birotor_Gzmodel.urdf -urdf -model Birotor_Gzmodel"
+        output="screen" />
+  ```
+- `Birotor_Gzmodel/launch/display.launch` loads the URDF into `robot_description`, runs `joint_state_publisher` and `robot_state_publisher`, and launches `rviz` with `-d $(find Birotor_Gzmodel)/urdf.rviz`.
+
+**Build/run**: `Birotor_Gzmodel/CMakeLists.txt` declares a standard `catkin` package (`find_package(catkin REQUIRED)`, `catkin_package()`, installs `config`, `launch`, `meshes`, `urdf`). To build and run it, the package must sit inside a catkin workspace's `src/` directory:
+```
+catkin_make        # or: catkin build
+source devel/setup.bash
+roslaunch Birotor_Gzmodel display.launch   # RViz visualization
+roslaunch Birotor_Gzmodel gazebo.launch    # spawn into Gazebo classic
+```
+This catkin build/run sequence is the standard workflow implied by the `CMakeLists.txt`/`package.xml` structure; it is not itself quoted from a file in the repository (no top-level build script or README was exported alongside the package).
 
 ## Repository structure
 
 ```
 .
-└── Bi_rotor_PID_Control.ipynb   # Full simulation: plant model, cascaded PID controller,
-                                  # analytic pseudo-inverse allocation, NeuralMixer definition,
-                                  # training-data generation, training loop, and two
-                                  # closed-loop simulation/plotting runs (PID-only allocation
-                                  # and neural-mixer allocation).
+├── Bi_rotor_PID_Control.ipynb     # Full simulation: plant model, cascaded PID controller,
+│                                   # analytic pseudo-inverse allocation, NeuralMixer definition,
+│                                   # training-data generation, training loop, and two
+│                                   # closed-loop simulation/plotting runs (PID-only allocation
+│                                   # and neural-mixer allocation).
+├── ICC25_0175_FI.pdf               # The source paper this vehicle model/allocation
+│                                   # formulation is taken from (see References).
+├── Birotor_Assembly.SLDASM         # SolidWorks CAD assembly of the vehicle (source for
+│                                   # the URDF export below).
+└── Birotor_Gzmodel/                # ROS1 catkin package exported from the SolidWorks
+    │                               # assembly via the SW2URDF plugin.
+    ├── CMakeLists.txt              # Standard catkin build rules.
+    ├── package.xml                 # catkin package manifest (deps: roslaunch,
+    │                               # robot_state_publisher, rviz, joint_state_publisher, gazebo).
+    ├── export.log                  # SW2URDF exporter log (components, timestamps, versions).
+    ├── config/
+    │   └── joint_names_Birotor_Gzmodel.yaml   # controller_joint_names list.
+    ├── launch/
+    │   ├── display.launch          # RViz visualization (joint_state_publisher + robot_state_publisher).
+    │   └── gazebo.launch           # Spawns the URDF into Gazebo classic via gazebo_ros.
+    ├── meshes/                     # Per-link STL visual/collision meshes.
+    └── urdf/
+        ├── Birotor_Gzmodel.urdf    # Exported URDF (8 links, 7 joints).
+        └── Birotor_Gzmodel.csv     # Exporter-generated link/joint summary table.
 ```
 
 ## Getting started
@@ -229,19 +284,39 @@ The notebook was authored and last run in Google Colab (it contains a `google.co
 3. The neural-mixer section requires `torch`; it generates its own training data, trains `NeuralMixer` in-notebook, and then redefines `CascadedPIDController` to use the trained model before running the second `main()`.
 4. The Google Drive mount/save cell (`VQBCfJQugLcf`) is Colab-specific and will fail outside Colab — skip it or replace with a local `torch.save`/`torch.load` path when running elsewhere.
 
-**Running PX4 SITL**: not applicable — no PX4/SITL integration exists in this repository (see above).
+**Running the Gazebo/RViz simulation pipeline**: requires ROS1 (catkin) and Gazebo classic. Place `Birotor_Gzmodel/` inside a catkin workspace's `src/` directory, then:
+```
+catkin_make
+source devel/setup.bash
+roslaunch Birotor_Gzmodel display.launch   # RViz
+roslaunch Birotor_Gzmodel gazebo.launch    # Gazebo classic
+```
+This is not PX4 SITL — no flight-stack (PX4/ArduPilot) is wired into this package; it only spawns/visualizes the exported URDF.
 
 ## Current status and known limitations
 
-- The vehicle model and both controllers exist only as an offline Python/PyTorch simulation; there is no hardware, CAD, URDF, or flight-stack (PX4/ArduPilot) integration in this repository.
+- The vehicle model and both controllers exist only as an offline Python/PyTorch simulation; the notebook is not wired to the URDF/Gazebo pipeline (the two are separate, unconnected artifacts in this repository), and there is no hardware or flight-stack (PX4/ArduPilot) integration.
 - The control-allocation matrix $M$ is rebuilt each cycle from the *previous* cycle's tilt angles, not the current ones — this is a one-step-delayed linearization, and the notebook explicitly logs the resulting `force_err`/`moment_err` discrepancy between commanded and realized wrench rather than eliminating it.
 - The `NeuralMixer` training-data filter (`generate_allocation_data`) checks the 40° angle limit only for rotor 1 (`a1`, `be1`); rotor 2's angles (`a2`, `be2`) are not filtered, so out-of-limit rotor-2 targets can enter the training set even though they are clamped at inference time in `compute_control`.
 - No accuracy/error comparison between the analytic pseudo-inverse mixer and the trained `NeuralMixer` is computed in the notebook beyond the per-run `force_err`/`moment_err` logging and a training-loss curve; there is no held-out validation/test split for the neural mixer.
 - Trained neural-mixer weights are not included in the repository (saved only to a Colab Drive path at runtime).
 - No automated tests, CI, or requirements file exist in the repository.
+- The exported URDF is not fully symmetric: `Left_servo2_joint` carries a `<mimic>` tag locking it to `Left_servo1_joint` (multiplier 1, offset 0), but `Right_servo2_joint` has no equivalent `mimic` tag. If this is unintentional, the two rotors' tilt kinematics differ in the URDF even though the physical/CAD design and the notebook's dynamics treat both rotors symmetrically.
+- `Birotor_Gzmodel/launch/display.launch` references an RViz config file, `$(find Birotor_Gzmodel)/urdf.rviz`, that is not present anywhere in the package — `display.launch` will fail to load a saved RViz layout as-is.
+- `Birotor_Gzmodel/package.xml` still has exporter placeholder values for `<author>` (`TODO`) and `<maintainer email="TODO@email.com">`.
+- There is no PX4 (or any flight-stack) integration; the "SITL" pipeline here is a URDF export spawned/visualized in Gazebo classic and RViz via ROS1, not a flight-controller-in-the-loop simulation.
+- The notebook's controller (cascaded PID, dynamically rebuilt allocation matrix) is a deliberate departure from the cited paper's controller (backstepping, constant allocation matrix); no quantitative comparison between the two control designs is included in this repository.
+
+## References
+
+S. Seshasayanan, M. H. Khan, and S. R. Sahoo, "Modeling and Control of a Dual-Tilt Birotor UAV." Sathyanarayanan Seshasayanan and Soumya Ranjan Sahoo are with the Department of Electrical Engineering, Indian Institute of Technology Kanpur; Mohd Haisam Khan is with the Department of Electrical Engineering, Indian Institute of Technology Bhilai. Paper included in this repository: [`ICC25_0175_FI.pdf`](./ICC25_0175_FI.pdf).
+
+That paper derives the same rigid-body dynamics and rotor moment-arm geometry ($r_1 = [(h_1+h_2\cos\beta_1)\sin\alpha_1,\ l-h_2\sin\beta_1,\ c_1+(h_1+h_2\cos\beta_1)\cos\alpha_1]^T$, matching this repository's $b_1,b_2,c_1$ notation) used in this repository's notebook, but controls the vehicle with a robust backstepping controller against a **constant** control-allocation matrix, rather than the cascaded PID / dynamically-rebuilt-allocation / neural-mixer designs explored here.
 
 ## TODO — verify
 
-- SolidWorks CAD export, URDF/SDF files, PX4 airframe registration ID/path, and SITL launch commands: none of this exists in the repository as provided. If this work exists elsewhere (a separate repo, a not-yet-committed local directory, or a planned future addition), it needs to be located or created before this section of the README can be filled in with real file paths and commands.
+- The exact publication venue, year, and DOI/ISBN of the cited paper could not be confirmed from the PDF's extracted text (no conference header, DOI, or ISBN appears in the extracted text layer) — the filename `ICC25_0175_FI.pdf` suggests a 2025 conference submission numbered 175, but this should be confirmed against the authors' own record before citing it externally.
+- Confirm whether the missing `Left_servo2_joint`/`Right_servo2_joint` `mimic`-tag asymmetry in the URDF and the missing `urdf.rviz` file are exporter artifacts to be fixed, or intentional.
 - Confirm whether the notebook is meant to be run only in Google Colab (as its Drive-mount cell suggests) or is also expected to run in a local Jupyter environment — no environment/requirements file is present to indicate a target platform.
 - Confirm the intended units/convention for $k = k_d/k_m = 0.017$ — the notebook comments it as a ratio but does not state the units of $k_d$ and $k_m$ individually.
+- Confirm which ROS distribution / Gazebo version `Birotor_Gzmodel` targets — `package.xml` and `CMakeLists.txt` do not pin a ROS distro or Gazebo version.

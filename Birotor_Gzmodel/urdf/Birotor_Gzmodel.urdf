@@ -1,0 +1,448 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.5.1-0-g916b5db  Build Version: 1.5.7152.31018
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot
+  name="Birotor_Gzmodel">
+  <link
+    name="base_link">
+    <inertial>
+      <origin
+        xyz="-2.2204E-15 3.2301E-15 0.03735"
+        rpy="0 0 0" />
+      <mass
+        value="0.037781" />
+      <inertia
+        ixx="1.0537E-05"
+        ixy="-1.2046E-21"
+        ixz="1.161E-20"
+        iyy="1.0537E-05"
+        iyz="6.5906E-21"
+        izz="4.0915E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://Birotor_Gzmodel/meshes/base_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://Birotor_Gzmodel/meshes/base_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link
+    name="Bottom_plate_chassis">
+    <inertial>
+      <origin
+        xyz="0.00099946 -0.0021149 0.076563"
+        rpy="0 0 0" />
+      <mass
+        value="0.5" />
+      <inertia
+        ixx="0.00033039"
+        ixy="-6.2413E-08"
+        ixz="2.4799E-12"
+        iyy="0.00013521"
+        iyz="5.9666E-08"
+        izz="0.0004345" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://Birotor_Gzmodel/meshes/Bottom_plate_chassis.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.8 0.8 0.8 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://Birotor_Gzmodel/meshes/Bottom_plate_chassis.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Bottom_plate_chassis"
+    type="fixed">
+    <origin
+      xyz="0 0 0"
+      rpy="0 0 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="Bottom_plate_chassis" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+  <link
+    name="Left_servo1">
+    <inertial>
+      <origin
+        xyz="0.023622 -0.0021429 -0.015941"
+        rpy="0 0 0" />
+      <mass
+        value="0.020585" />
+      <inertia
+        ixx="5.1518E-06"
+        ixy="-5.4652E-08"
+        ixz="-6.3829E-08"
+        iyy="5.2368E-06"
+        iyz="3.293E-08"
+        izz="2.682E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://Birotor_Gzmodel/meshes/Left_servo1.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://Birotor_Gzmodel/meshes/Left_servo1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Left_servo1_joint"
+    type="revolute">
+    <origin
+      xyz="-0.00125 0.1542 0.115"
+      rpy="-1.5708 -1.5568 0" />
+    <parent
+      link="Bottom_plate_chassis" />
+    <child
+      link="Left_servo1" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-1.47"
+      upper="1.47"
+      effort="2.5"
+      velocity="3" />
+  </joint>
+  <link
+    name="Left_servo2">
+    <inertial>
+      <origin
+        xyz="0.035886 -0.00045364 -0.015986"
+        rpy="0 0 0" />
+      <mass
+        value="0.017845" />
+      <inertia
+        ixx="4.1156E-06"
+        ixy="1.6714E-08"
+        ixz="-8.7921E-08"
+        iyy="5.432E-06"
+        iyz="1.1148E-09"
+        izz="2.8982E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://Birotor_Gzmodel/meshes/Left_servo2.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://Birotor_Gzmodel/meshes/Left_servo2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Left_servo2_joint"
+    type="revolute">
+    <origin
+      xyz="0.02875 -0.0215 -0.011"
+      rpy="1.5708 0 0" />
+    <parent
+      link="Left_servo1" />
+    <child
+      link="Left_servo2" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-1.47"
+      upper="1.47"
+      effort="2.5"
+      velocity="3" />
+    <mimic
+      joint="Left_servo1_joint"
+      multiplier="1"
+      offset="0" />
+  </joint>
+  <link
+    name="Left_prop">
+    <inertial>
+      <origin
+        xyz="4.3368E-06 -2.5067E-06 -0.0068067"
+        rpy="0 0 0" />
+      <mass
+        value="0.0030459" />
+      <inertia
+        ixx="1.016E-06"
+        ixy="-3.5495E-10"
+        ixz="-2.6675E-11"
+        iyy="1.0166E-06"
+        iyz="-9.1423E-12"
+        izz="1.9881E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://Birotor_Gzmodel/meshes/Left_prop.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.96471 0.011765 0.011765 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://Birotor_Gzmodel/meshes/Left_prop.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Left_prop_joint"
+    type="continuous">
+    <origin
+      xyz="0.072694 -0.00091697 -0.016"
+      rpy="1.5708 1.5706 1.5582" />
+    <parent
+      link="Left_servo2" />
+    <child
+      link="Left_prop" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      effort="10"
+      velocity="500" />
+  </joint>
+  <link
+    name="Right_servo1">
+    <inertial>
+      <origin
+        xyz="0.0019827 0.02363 -0.015753"
+        rpy="0 0 0" />
+      <mass
+        value="0.020585" />
+      <inertia
+        ixx="5.2364E-06"
+        ixy="5.5186E-08"
+        ixz="-3.2686E-08"
+        iyy="5.1522E-06"
+        iyz="-6.3944E-08"
+        izz="2.682E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://Birotor_Gzmodel/meshes/Right_servo1.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://Birotor_Gzmodel/meshes/Right_servo1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Right_servo1_joint"
+    type="revolute">
+    <origin
+      xyz="0.00125 -0.1542 0.115"
+      rpy="1.5708 0 0" />
+    <parent
+      link="Bottom_plate_chassis" />
+    <child
+      link="Right_servo1" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-1.47"
+      upper="1.47"
+      effort="2.5"
+      velocity="3" />
+  </joint>
+  <link
+    name="Right_servo2">
+    <inertial>
+      <origin
+        xyz="0.0003729 0.035887 -0.015986"
+        rpy="0 0 0" />
+      <mass
+        value="0.017845" />
+      <inertia
+        ixx="5.432E-06"
+        ixy="-1.3561E-08"
+        ixz="-9.0055E-10"
+        iyy="4.1156E-06"
+        iyz="-8.7922E-08"
+        izz="2.8982E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://Birotor_Gzmodel/meshes/Right_servo2.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.8 0.8 0.8 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://Birotor_Gzmodel/meshes/Right_servo2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Right_servo2_joint"
+    type="revolute">
+    <origin
+      xyz="0.021199 0.028825 -0.0105"
+      rpy="0.0035209 1.5708 0" />
+    <parent
+      link="Right_servo1" />
+    <child
+      link="Right_servo2" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-1.47"
+      upper="1.47"
+      effort="2.5"
+      velocity="3" />
+  </joint>
+  <link
+    name="Right_prop">
+    <inertial>
+      <origin
+        xyz="1.4742E-06 6.6133E-07 -0.0068067"
+        rpy="0 0 0" />
+      <mass
+        value="0.003044" />
+      <inertia
+        ixx="1.0138E-06"
+        ixy="3.4763E-10"
+        ixz="-3.7672E-11"
+        iyy="1.0136E-06"
+        iyz="2.1242E-11"
+        izz="1.983E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://Birotor_Gzmodel/meshes/Right_prop.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.96471 0.011765 0.011765 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://Birotor_Gzmodel/meshes/Right_prop.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Right_prop_joint"
+    type="continuous">
+    <origin
+      xyz="0.00075903 0.072696 -0.016"
+      rpy="-1.5708 -1.5708 -0.010441" />
+    <parent
+      link="Right_servo2" />
+    <child
+      link="Right_prop" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      effort="10"
+      velocity="500" />
+  </joint>
+</robot>
